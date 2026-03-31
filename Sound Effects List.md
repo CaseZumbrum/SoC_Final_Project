@@ -2,7 +2,7 @@ A List of possible sound effects that can be done thru software. 3 of these will
 
 
 
-\# --Distortion--
+# Distortion
 
 Hard Clipping (like threshold stuff)
 
@@ -18,7 +18,7 @@ Digital distortion (bitcrush/reduce bits to make a more "compressed" output)
 
 
 
-\# Delay
+# Delay
 
 Apply a small delay on the actual output of the audio signal 
 
@@ -26,7 +26,7 @@ Also can do some stuff with echoing
 
 
 
-\# Misc.
+# Misc.
 
 Do some reverb stuff, seems a lil overkill tho
 
