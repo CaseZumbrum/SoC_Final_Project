@@ -1,0 +1,8 @@
+*.cache/
+*.gen/
+*.hw/
+*.runs/
+*.sim/
+*.srcs/
+*.ip_user_files/
+*.xpr

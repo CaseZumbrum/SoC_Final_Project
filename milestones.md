@@ -4,11 +4,11 @@
  1. Test filter/pre-amp on an actual amp
 
 ## Audio Hardware - Case
-1. read in signal across ADC
-2. PDM converter
-3. create audio pass-through system (no effect) running through fpga
-4. Store audio wave in buffer
-5. read from buffer to output across pdm
+1. read in signal across ADC (DONE)
+2. PDM converter (DONE)
+3. create audio pass-through system (no effect) running through fpga (DONE)
+4. Store audio wave in buffer (DONE)
+5. read from buffer to output across pdm (DONE)
 
 ## Processor Hardware - William
 1. Define hardware in vivado
