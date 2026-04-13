@@ -9,44 +9,36 @@ XSysMon XadcInst;
 
 int main() {
     XSysMon_Config *ConfigPtr;
-    u32 Status;
     u16 RawData;
     u16* gpio = (u16 *) XPAR_XGPIO_0_BASEADDR;
-    float Voltage;
 
-    // 1. Initialize the XADC driver
+    // Initialize the XADC driver
     ConfigPtr = XSysMon_LookupConfig(XPAR_XADC_WIZ_0_BASEADDR);
     if (ConfigPtr == NULL) return XST_FAILURE;
     
     XSysMon_CfgInitialize(&XadcInst, ConfigPtr, ConfigPtr->BaseAddress);
 
-    // 2. Configure the Sequencer
+    // Configure the Sequencer
     // First, set to Safe Mode to allow configuration changes
     XSysMon_SetSequencerMode(&XadcInst, XSM_SEQ_MODE_SAFE);
 
-    // Enable specific Auxiliary Channels (e.g., AUX 0, 1, and 8)
-    // Masks are defined in xsysmon.h (e.g., XSM_SEQ_CH_AUX00)
-    
+    // Enable aux channel  
     XSysMon_SetSeqChEnables(&XadcInst, XSM_SEQ_CH_AUX01);
 
-    // 3. Start the Sequencer in Continuous mode
+    // Set ADC to keep running (not event based)
     XSysMon_SetSequencerMode(&XadcInst, XSM_SEQ_MODE_CONTINPASS);
 
     while(1) {
-        // Wait for the End of Sequence (EOS) to ensure fresh data
+        // Wait for data to finish
         while ((XSysMon_GetStatus(&XadcInst) & XSM_SR_EOS_MASK) != XSM_SR_EOS_MASK);
 
-        // 4. Read Auxiliary Channel 0
-        // Use XSM_CH_AUX_MIN + [Channel Number]
+        // Read channel data
         RawData = XSysMon_GetAdcData(&XadcInst, XSM_CH_AUX_MIN + 1);
         
+        // TRANSFORMS HAPPEN HERE
+
+        // Send data to GPIO
         gpio[0] = RawData;
-
-        // Convert to Voltage (0 to 1.0V range for unipolar)
-        //Voltage = ((float)RawData / 65536.0f) * 1.0f;
-
-        //printf("AUX0 Raw: %d, Voltage: %.3fV\r\n", RawData, Voltage);
-
     }
 
     return 0;
