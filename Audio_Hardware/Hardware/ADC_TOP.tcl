@@ -144,6 +144,7 @@ xilinx.com:ip:smartconnect:1.0\
 xilinx.com:ip:clk_wiz:6.0\
 xilinx.com:ip:axi_uartlite:2.0\
 xilinx.com:ip:axi_gpio:2.0\
+xilinx.com:ip:axi_cdma:4.1\
 xilinx.com:ip:lmb_v10:3.0\
 xilinx.com:ip:lmb_bram_if_cntlr:4.0\
 xilinx.com:ip:blk_mem_gen:8.4\
@@ -377,8 +378,8 @@ proc create_root_design { parentCell } {
   # Create instance: axi_smc, and set properties
   set axi_smc [ create_bd_cell -type ip -vlnv xilinx.com:ip:smartconnect:1.0 axi_smc ]
   set_property -dict [list \
-    CONFIG.NUM_MI {3} \
-    CONFIG.NUM_SI {1} \
+    CONFIG.NUM_MI {4} \
+    CONFIG.NUM_SI {2} \
   ] $axi_smc
 
 
@@ -415,10 +416,17 @@ proc create_root_design { parentCell } {
     set_property CONFIG.pwm_bits {12} $pwm_modulator_0
 
 
+  # Create instance: axi_cdma_0, and set properties
+  set axi_cdma_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_cdma:4.1 axi_cdma_0 ]
+  set_property CONFIG.C_INCLUDE_SG {0} $axi_cdma_0
+
+
   # Create interface connections
-  connect_bd_intf_net -intf_net axi_smc_M00_AXI [get_bd_intf_pins axi_smc/M00_AXI] [get_bd_intf_pins xadc_wiz_0/s_axi_lite]
+  connect_bd_intf_net -intf_net axi_cdma_0_M_AXI [get_bd_intf_pins axi_cdma_0/M_AXI] [get_bd_intf_pins axi_smc/S01_AXI]
+  connect_bd_intf_net -intf_net axi_smc_M00_AXI [get_bd_intf_pins axi_smc/M00_AXI] [get_bd_intf_pins axi_cdma_0/S_AXI_LITE]
   connect_bd_intf_net -intf_net axi_smc_M01_AXI [get_bd_intf_pins axi_smc/M01_AXI] [get_bd_intf_pins axi_uartlite_0/S_AXI]
   connect_bd_intf_net -intf_net axi_smc_M02_AXI [get_bd_intf_pins axi_smc/M02_AXI] [get_bd_intf_pins axi_gpio_0/S_AXI]
+  connect_bd_intf_net -intf_net axi_smc_M03_AXI [get_bd_intf_pins axi_smc/M03_AXI] [get_bd_intf_pins xadc_wiz_0/s_axi_lite]
   connect_bd_intf_net -intf_net axi_uartlite_0_UART [get_bd_intf_ports uart] [get_bd_intf_pins axi_uartlite_0/UART]
   connect_bd_intf_net -intf_net microblaze_riscv_0_M_AXI_DP [get_bd_intf_pins microblaze_riscv_0/M_AXI_DP] [get_bd_intf_pins axi_smc/S00_AXI]
   connect_bd_intf_net -intf_net microblaze_riscv_0_debug [get_bd_intf_pins mdm_1/MBDEBUG_0] [get_bd_intf_pins microblaze_riscv_0/DEBUG]
@@ -448,7 +456,9 @@ proc create_root_design { parentCell } {
   [get_bd_pins microblaze_riscv_0_local_memory/LMB_Clk] \
   [get_bd_pins axi_uartlite_0/s_axi_aclk] \
   [get_bd_pins axi_gpio_0/s_axi_aclk] \
-  [get_bd_pins pwm_modulator_0/clk]
+  [get_bd_pins pwm_modulator_0/clk] \
+  [get_bd_pins axi_cdma_0/m_axi_aclk] \
+  [get_bd_pins axi_cdma_0/s_axi_lite_aclk]
   connect_bd_net -net pwm_modulator_0_pwm_out  [get_bd_pins pwm_modulator_0/pwm_out] \
   [get_bd_ports SPKL] \
   [get_bd_ports SPKR] \
@@ -464,14 +474,22 @@ proc create_root_design { parentCell } {
   [get_bd_pins axi_smc/aresetn] \
   [get_bd_pins axi_uartlite_0/s_axi_aresetn] \
   [get_bd_pins axi_gpio_0/s_axi_aresetn] \
-  [get_bd_pins pwm_modulator_0/rstn]
+  [get_bd_pins pwm_modulator_0/rstn] \
+  [get_bd_pins axi_cdma_0/s_axi_lite_aresetn]
 
   # Create address segments
-  assign_bd_address -offset 0x40000000 -range 0x00010000 -target_address_space [get_bd_addr_spaces microblaze_riscv_0/Data] [get_bd_addr_segs axi_gpio_0/S_AXI/Reg] -force
+  assign_bd_address -offset 0x44A10000 -range 0x00002000 -target_address_space [get_bd_addr_spaces microblaze_riscv_0/Data] [get_bd_addr_segs axi_cdma_0/S_AXI_LITE/Reg] -force
+  assign_bd_address -offset 0x40000000 -range 0x00000080 -target_address_space [get_bd_addr_spaces microblaze_riscv_0/Data] [get_bd_addr_segs axi_gpio_0/S_AXI/Reg] -force
   assign_bd_address -offset 0x40600000 -range 0x00010000 -target_address_space [get_bd_addr_spaces microblaze_riscv_0/Data] [get_bd_addr_segs axi_uartlite_0/S_AXI/Reg] -force
   assign_bd_address -offset 0x00000000 -range 0x00020000 -target_address_space [get_bd_addr_spaces microblaze_riscv_0/Data] [get_bd_addr_segs microblaze_riscv_0_local_memory/dlmb_bram_if_cntlr/SLMB/Mem] -force
-  assign_bd_address -offset 0x44A00000 -range 0x00010000 -target_address_space [get_bd_addr_spaces microblaze_riscv_0/Data] [get_bd_addr_segs xadc_wiz_0/s_axi_lite/Reg] -force
+  assign_bd_address -offset 0x44A00000 -range 0x00002000 -target_address_space [get_bd_addr_spaces microblaze_riscv_0/Data] [get_bd_addr_segs xadc_wiz_0/s_axi_lite/Reg] -force
   assign_bd_address -offset 0x00000000 -range 0x00020000 -target_address_space [get_bd_addr_spaces microblaze_riscv_0/Instruction] [get_bd_addr_segs microblaze_riscv_0_local_memory/ilmb_bram_if_cntlr/SLMB/Mem] -force
+  assign_bd_address -offset 0x40000000 -range 0x00000080 -target_address_space [get_bd_addr_spaces axi_cdma_0/Data] [get_bd_addr_segs axi_gpio_0/S_AXI/Reg] -force
+  assign_bd_address -offset 0x44A00000 -range 0x00002000 -target_address_space [get_bd_addr_spaces axi_cdma_0/Data] [get_bd_addr_segs xadc_wiz_0/s_axi_lite/Reg] -force
+
+  # Exclude Address Segments
+  exclude_bd_addr_seg -target_address_space [get_bd_addr_spaces axi_cdma_0/Data] [get_bd_addr_segs axi_cdma_0/S_AXI_LITE/Reg]
+  exclude_bd_addr_seg -offset 0x40600000 -range 0x00010000 -target_address_space [get_bd_addr_spaces axi_cdma_0/Data] [get_bd_addr_segs axi_uartlite_0/S_AXI/Reg]
 
 
   # Restore current instance
