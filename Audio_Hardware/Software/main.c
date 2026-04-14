@@ -175,7 +175,16 @@ int main() {
         while ((XSysMon_GetStatus(&XadcInst) & XSM_SR_EOS_MASK) != XSM_SR_EOS_MASK);
 
         // DMA
-        XStatus Status = XAxiCdma_SimpleTransfer(&xAxiCdmaInstance, (UINTPTR)adc, (UINTPTR)gpio, sizeof(u16), NULL, NULL);
+
+        // Read channel data
+        RawData = XSysMon_GetAdcData(&XadcInst, XSM_CH_AUX_MIN + 1);
+        
+        // Apply Transform from Included Header File
+
+        TransformedData = TransformSoftware(RawData, mode);
+
+        // Send data to GPIO
+        XStatus Status = XAxiCdma_SimpleTransfer(&xAxiCdmaInstance, (UINTPTR)&TransformedData, (UINTPTR)gpio, sizeof(u16), NULL, NULL);
         if(Status != XST_SUCCESS) 
         {
             print("AXI CDMA 0 Transfer Failed\n\r");
