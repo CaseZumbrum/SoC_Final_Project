@@ -46,7 +46,7 @@ if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
 
 # The design that will be created by this Tcl script contains the following 
 # module references:
-# pwm_modulator
+# pwm_modulator, echo_wrapper
 
 # Please add the sources of those modules before sourcing this Tcl script.
 
@@ -174,6 +174,7 @@ set bCheckModules 1
 if { $bCheckModules == 1 } {
    set list_check_mods "\ 
 pwm_modulator\
+echo_wrapper\
 "
 
    set list_mods_missing ""
@@ -347,6 +348,7 @@ proc create_root_design { parentCell } {
   # Create instance: xadc_wiz_0, and set properties
   set xadc_wiz_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xadc_wiz:3.3 xadc_wiz_0 ]
   set_property -dict [list \
+    CONFIG.ADC_CONVERSION_RATE {48} \
     CONFIG.CHANNEL_ENABLE_VAUXP0_VAUXN0 {false} \
     CONFIG.CHANNEL_ENABLE_VAUXP1_VAUXN1 {true} \
     CONFIG.CHANNEL_ENABLE_VAUXP2_VAUXN2 {false} \
@@ -378,7 +380,7 @@ proc create_root_design { parentCell } {
   # Create instance: axi_smc, and set properties
   set axi_smc [ create_bd_cell -type ip -vlnv xilinx.com:ip:smartconnect:1.0 axi_smc ]
   set_property -dict [list \
-    CONFIG.NUM_MI {4} \
+    CONFIG.NUM_MI {5} \
     CONFIG.NUM_SI {2} \
   ] $axi_smc
 
@@ -421,12 +423,29 @@ proc create_root_design { parentCell } {
   set_property CONFIG.C_INCLUDE_SG {0} $axi_cdma_0
 
 
+  # Create instance: echo_wrapper_0, and set properties
+  set block_name echo_wrapper
+  set block_cell_name echo_wrapper_0
+  if { [catch {set echo_wrapper_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   } elseif { $echo_wrapper_0 eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   }
+  
+  # Create instance: echo_gpio, and set properties
+  set echo_gpio [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 echo_gpio ]
+  set_property CONFIG.C_GPIO_WIDTH {12} $echo_gpio
+
+
   # Create interface connections
   connect_bd_intf_net -intf_net axi_cdma_0_M_AXI [get_bd_intf_pins axi_cdma_0/M_AXI] [get_bd_intf_pins axi_smc/S01_AXI]
   connect_bd_intf_net -intf_net axi_smc_M00_AXI [get_bd_intf_pins axi_smc/M00_AXI] [get_bd_intf_pins axi_cdma_0/S_AXI_LITE]
   connect_bd_intf_net -intf_net axi_smc_M01_AXI [get_bd_intf_pins axi_smc/M01_AXI] [get_bd_intf_pins axi_uartlite_0/S_AXI]
   connect_bd_intf_net -intf_net axi_smc_M02_AXI [get_bd_intf_pins axi_smc/M02_AXI] [get_bd_intf_pins axi_gpio_0/S_AXI]
   connect_bd_intf_net -intf_net axi_smc_M03_AXI [get_bd_intf_pins axi_smc/M03_AXI] [get_bd_intf_pins xadc_wiz_0/s_axi_lite]
+  connect_bd_intf_net -intf_net axi_smc_M04_AXI [get_bd_intf_pins axi_smc/M04_AXI] [get_bd_intf_pins echo_gpio/S_AXI]
   connect_bd_intf_net -intf_net axi_uartlite_0_UART [get_bd_intf_ports uart] [get_bd_intf_pins axi_uartlite_0/UART]
   connect_bd_intf_net -intf_net microblaze_riscv_0_M_AXI_DP [get_bd_intf_pins microblaze_riscv_0/M_AXI_DP] [get_bd_intf_pins axi_smc/S00_AXI]
   connect_bd_intf_net -intf_net microblaze_riscv_0_debug [get_bd_intf_pins mdm_1/MBDEBUG_0] [get_bd_intf_pins microblaze_riscv_0/DEBUG]
@@ -439,12 +458,16 @@ proc create_root_design { parentCell } {
   connect_bd_net -net AD1_P_1  [get_bd_ports vauxp1] \
   [get_bd_pins xadc_wiz_0/vauxp1]
   connect_bd_net -net axi_gpio_0_gpio_io_o  [get_bd_pins axi_gpio_0/gpio_io_o] \
-  [get_bd_ports LED] \
   [get_bd_pins pwm_modulator_0/duty_cycle]
+  connect_bd_net -net axi_gpio_1_gpio_io_o  [get_bd_pins echo_gpio/gpio_io_o] \
+  [get_bd_pins echo_wrapper_0/sample_in]
   connect_bd_net -net clk_100MHz_1  [get_bd_ports clk_100MHz] \
   [get_bd_pins clk_wiz_1/clk_in1]
   connect_bd_net -net clk_wiz_1_locked  [get_bd_pins clk_wiz_1/locked] \
   [get_bd_pins rst_clk_wiz_1_100M/dcm_locked]
+  connect_bd_net -net echo_wrapper_0_sample_out  [get_bd_pins echo_wrapper_0/sample_out] \
+  [get_bd_pins echo_gpio/gpio_io_i] \
+  [get_bd_ports LED]
   connect_bd_net -net mdm_1_debug_sys_rst  [get_bd_pins mdm_1/Debug_SYS_Rst] \
   [get_bd_pins rst_clk_wiz_1_100M/mb_debug_sys_rst] \
   [get_bd_pins clk_wiz_1/reset]
@@ -458,7 +481,9 @@ proc create_root_design { parentCell } {
   [get_bd_pins axi_gpio_0/s_axi_aclk] \
   [get_bd_pins pwm_modulator_0/clk] \
   [get_bd_pins axi_cdma_0/m_axi_aclk] \
-  [get_bd_pins axi_cdma_0/s_axi_lite_aclk]
+  [get_bd_pins axi_cdma_0/s_axi_lite_aclk] \
+  [get_bd_pins echo_gpio/s_axi_aclk] \
+  [get_bd_pins echo_wrapper_0/clk]
   connect_bd_net -net pwm_modulator_0_pwm_out  [get_bd_pins pwm_modulator_0/pwm_out] \
   [get_bd_ports SPKL] \
   [get_bd_ports SPKR] \
@@ -475,16 +500,20 @@ proc create_root_design { parentCell } {
   [get_bd_pins axi_uartlite_0/s_axi_aresetn] \
   [get_bd_pins axi_gpio_0/s_axi_aresetn] \
   [get_bd_pins pwm_modulator_0/rstn] \
-  [get_bd_pins axi_cdma_0/s_axi_lite_aresetn]
+  [get_bd_pins axi_cdma_0/s_axi_lite_aresetn] \
+  [get_bd_pins echo_wrapper_0/rst_n] \
+  [get_bd_pins echo_gpio/s_axi_aresetn]
 
   # Create address segments
   assign_bd_address -offset 0x44A10000 -range 0x00002000 -target_address_space [get_bd_addr_spaces microblaze_riscv_0/Data] [get_bd_addr_segs axi_cdma_0/S_AXI_LITE/Reg] -force
   assign_bd_address -offset 0x40000000 -range 0x00000080 -target_address_space [get_bd_addr_spaces microblaze_riscv_0/Data] [get_bd_addr_segs axi_gpio_0/S_AXI/Reg] -force
   assign_bd_address -offset 0x40600000 -range 0x00010000 -target_address_space [get_bd_addr_spaces microblaze_riscv_0/Data] [get_bd_addr_segs axi_uartlite_0/S_AXI/Reg] -force
   assign_bd_address -offset 0x00000000 -range 0x00020000 -target_address_space [get_bd_addr_spaces microblaze_riscv_0/Data] [get_bd_addr_segs microblaze_riscv_0_local_memory/dlmb_bram_if_cntlr/SLMB/Mem] -force
+  assign_bd_address -offset 0x40010000 -range 0x00000080 -target_address_space [get_bd_addr_spaces microblaze_riscv_0/Data] [get_bd_addr_segs echo_gpio/S_AXI/Reg] -force
   assign_bd_address -offset 0x44A00000 -range 0x00002000 -target_address_space [get_bd_addr_spaces microblaze_riscv_0/Data] [get_bd_addr_segs xadc_wiz_0/s_axi_lite/Reg] -force
   assign_bd_address -offset 0x00000000 -range 0x00020000 -target_address_space [get_bd_addr_spaces microblaze_riscv_0/Instruction] [get_bd_addr_segs microblaze_riscv_0_local_memory/ilmb_bram_if_cntlr/SLMB/Mem] -force
   assign_bd_address -offset 0x40000000 -range 0x00000080 -target_address_space [get_bd_addr_spaces axi_cdma_0/Data] [get_bd_addr_segs axi_gpio_0/S_AXI/Reg] -force
+  assign_bd_address -offset 0x40010000 -range 0x00000080 -target_address_space [get_bd_addr_spaces axi_cdma_0/Data] [get_bd_addr_segs echo_gpio/S_AXI/Reg] -force
   assign_bd_address -offset 0x44A00000 -range 0x00002000 -target_address_space [get_bd_addr_spaces axi_cdma_0/Data] [get_bd_addr_segs xadc_wiz_0/s_axi_lite/Reg] -force
 
   # Exclude Address Segments

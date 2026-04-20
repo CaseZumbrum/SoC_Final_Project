@@ -56,6 +56,8 @@ int main() {
 
     u16* gpio = (u16 *) XPAR_XGPIO_0_BASEADDR;
     u16* adc = (u16 *) (XPAR_XADC_WIZ_0_BASEADDR + XSM_TEMP_OFFSET + (17 << 2));
+    u16* echo = (u16 *) XPAR_ECHO_GPIO_BASEADDR;
+
 
     // initialize DMA
     status = init_dma(&DMA_inst);
@@ -89,7 +91,9 @@ int main() {
         // Apply Transform from Included Header File
         TransformedData = TransformSoftware(RawData, mode);
         // send data to PWM module
-        gpio[0] = TransformedData;
+        echo[0] = TransformedData;
+        // send data to PWM module
+        gpio[0] = echo[0];
 
         // ADC SETUP (NOT AS USEFUL WHEN DOING SOFTWARE EFFECTS)
         // XStatus Status = XAxiCdma_SimpleTransfer(&DMA_inst, (UINTPTR)adc, (UINTPTR)gpio, sizeof(u16), NULL, NULL);
