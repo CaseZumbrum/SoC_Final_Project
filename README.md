@@ -6,6 +6,7 @@ Final project repository for EEL4930
 1. Case Zumbrum (Undergraduate)
 2. Jacob Mack (Undergraduate)
 3. Cameron Doig-Daniels (Undergraduate)
+4. William Jones (Graduate)
 
 ## Brainstorming
 
