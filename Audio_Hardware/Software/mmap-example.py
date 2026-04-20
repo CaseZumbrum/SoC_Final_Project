@@ -1,8 +1,8 @@
 import os
 import mmap
-import struct
 
 XADC_BASE_ADDR = 0x44A00000
+PWM_BASE_ADDR = 0x40000000
 MAP_SIZE = 4096 
 
 def main():
@@ -13,19 +13,24 @@ def main():
         return
 
     try:
-        mem = mmap.mmap(fd, 
+        adc = mmap.mmap(fd, 
                         length=MAP_SIZE, 
                         flags=mmap.MAP_SHARED, 
                         prot=mmap.PROT_READ | mmap.PROT_WRITE, 
                         offset=XADC_BASE_ADDR)
+        pwm = mmap.mmap(fd, 
+                        length=MAP_SIZE, 
+                        flags=mmap.MAP_SHARED, 
+                        prot=mmap.PROT_READ | mmap.PROT_WRITE, 
+                        offset=PWM_BASE_ADDR)
 
-        target_offset = 0x00
-        mem.seek(target_offset)
-        raw_bytes = mem.read(4)
-        reg_value = struct.unpack('<I', raw_bytes)[0]
-        
-        print(f"Value at {hex(target_offset)}: {hex(reg_value)}")
-        mem.close()
+        adc_offset = 0x200 + (17 << 2)
+                
+        while True:
+            pwm[0:2] = adc[adc_offset:adc_offset+2]
+            
+    except OSError as e:
+        print(e)
     finally:
         os.close(fd)
 
