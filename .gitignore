@@ -6,4 +6,5 @@
 *.srcs/
 *.ip_user_files/
 *.xpr
+.Xil/
 Vitis_WS/
