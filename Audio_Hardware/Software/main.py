@@ -10,11 +10,16 @@ DMA_BASE_ADDR = 0x44a10000
 DMA_SRC_OFFSET = 0x00000018
 DMA_DEST_OFFSET = 0x00000020
 DMA_START_LENGTH_OFFSET = 0x00000028
-DMA_CR_OFFSET = 0x00
+DMA_CONTROL_OFFSET = 0x00
+DMA_STATUS_OFFSET = 0x04
 
 MAP_SIZE = 4096 
 
 LENGTH = 4
+
+def bit_set(n:bytes, k:int):
+    return (n[k//8] & (1 << (k%8))) != 0
+    # return (n[len(n) - 1 - k//8] & (1 << (k%8))) != 0
 
 def main():
     try:
@@ -42,12 +47,17 @@ def main():
                         offset=DMA_BASE_ADDR)
 
         # Reset DMA
-        # dma[DMA_CR_OFFSET:DMA_CR_OFFSET+4] = (0x4).to_bytes(4, 'little')
+        dma[DMA_CONTROL_OFFSET:DMA_CONTROL_OFFSET+4] = (0x4).to_bytes(4, 'little')
         
         dma[DMA_SRC_OFFSET:DMA_SRC_OFFSET+4] = (XADC_BASE_ADDR + ADC_OFFSET).to_bytes(4, 'little')
         dma[DMA_DEST_OFFSET:DMA_DEST_OFFSET+4] = PWM_BASE_ADDR.to_bytes(4, 'little')
         print("Starting")
         while True:
+            # check if bit is set
+            while(not bit_set(dma[DMA_STATUS_OFFSET: DMA_STATUS_OFFSET+4], 1)):
+                status = dma[DMA_STATUS_OFFSET: DMA_STATUS_OFFSET+4]
+                print(status, bit_set(dma[DMA_STATUS_OFFSET: DMA_STATUS_OFFSET+4], 1))
+                pass
             dma[DMA_START_LENGTH_OFFSET:DMA_START_LENGTH_OFFSET+4] = LENGTH.to_bytes(4, 'little')
             # pwm[0:2] = adc[ADC_OFFSET:ADC_OFFSET+2]
             
