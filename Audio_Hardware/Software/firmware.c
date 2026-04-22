@@ -1,3 +1,13 @@
+/*
+firmware.c
+
+Created by: Case Zumbrum
+
+Firmware that runs on baremetal system, used for testing hardware
+
+Uses DMA to constantly send data from adc to audio output
+*/
+
 #include "xsysmon.h"
 #include "xparameters.h"
 #include "xaxicdma.h"
@@ -11,13 +21,14 @@
 #include "effects.h"
 
 
+
 XStatus init_dma(XAxiCdma *DMA_inst){
-    XAxiCdma_Config *DMA_ConfigPtr  = XAxiCdma_LookupConfig(XPAR_AXI_CDMA_0_BASEADDR);
+    XAxiCdma_Config *DMA_ConfigPtr  = XAxiCdma_LookupConfig(XPAR_PERIFS_AXI_PERIFS_AUDIO_CDMA_BASEADDR);
     return XAxiCdma_CfgInitialize(DMA_inst, DMA_ConfigPtr,DMA_ConfigPtr->BaseAddress);
 }
 
 XStatus init_adc(XSysMon *ADC_inst){
-    XSysMon_Config* ADC_ConfigPtr = XSysMon_LookupConfig(XPAR_XADC_WIZ_0_BASEADDR);
+    XSysMon_Config* ADC_ConfigPtr = XSysMon_LookupConfig(XPAR_PERIFS_AXI_PERIFS_XADC_WIZ_0_BASEADDR);
     if (ADC_ConfigPtr == NULL) return XST_FAILURE;
     
     XSysMon_CfgInitialize(ADC_inst, ADC_ConfigPtr, ADC_ConfigPtr->BaseAddress);
@@ -54,10 +65,10 @@ int main() {
     int mode = 0;
     u16 TransformedData = 0;
 
-    u16* gpio = (u16 *) XPAR_XGPIO_0_BASEADDR;
-    u16* adc = (u16 *) (XPAR_XADC_WIZ_0_BASEADDR + XSM_TEMP_OFFSET + (17 << 2));
-    u16* echo = (u16 *) XPAR_ECHO_GPIO_BASEADDR;
-    u16* reverb = (u16 *) XPAR_REVERB_GPIO_BASEADDR;
+    u16* gpio = (u16 *) XPAR_PERIFS_AXI_PERIFS_PWM_GPIO_BASEADDR;
+    u16* adc = (u16 *) (XPAR_PERIFS_AXI_PERIFS_XADC_WIZ_0_BASEADDR + XSM_TEMP_OFFSET + (17 << 2));
+    u16* echo = (u16 *) XPAR_PERIFS_AXI_PERIFS_ECHO_GPIO_BASEADDR;
+    u16* reverb = (u16 *) XPAR_PERIFS_AXI_PERIFS_REVERB_GPIO_BASEADDR;
 
 
     // initialize DMA
@@ -87,25 +98,21 @@ int main() {
         // Wait for data to finish
         while ((XSysMon_GetStatus(&ADC_inst) & XSM_SR_EOS_MASK) != XSM_SR_EOS_MASK);
 
-        // Read channel data
-        RawData = XSysMon_GetAdcData(&ADC_inst, XSM_CH_AUX_MIN + 1);
-        // Apply Transform from Included Header File
-        TransformedData = TransformSoftware(RawData, mode);
-        // send data to PWM module
-        reverb[0] = TransformedData;
-        // send data to PWM module
-        gpio[0] = reverb[0];
+        // // send data to PWM module
+        // reverb[0] = adc[0];
+        // // send data to PWM module
+        // gpio[0] = reverb[0];
 
         // ADC SETUP (NOT AS USEFUL WHEN DOING SOFTWARE EFFECTS)
-        // XStatus Status = XAxiCdma_SimpleTransfer(&DMA_inst, (UINTPTR)adc, (UINTPTR)gpio, sizeof(u16), NULL, NULL);
-        // if(Status != XST_SUCCESS) 
-        // {
-        //     print("AXI CDMA 0 Transfer Failed\n\r");
-        //     // send data manually
-        //     gpio[0] = *adc;
+        XStatus Status = XAxiCdma_SimpleTransfer(&DMA_inst, (UINTPTR)adc, (UINTPTR)gpio, sizeof(u16), NULL, NULL);
+        if(Status != XST_SUCCESS) 
+        {
+            print("AXI CDMA 0 Transfer Failed\n\r");
+            // send data manually
+            gpio[0] = *adc;
             
-        // }
-        // while(XAxiCdma_IsBusy(&DMA_inst));
+        }
+        while(XAxiCdma_IsBusy(&DMA_inst));
     }
 
     return 0;
