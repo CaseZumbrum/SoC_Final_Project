@@ -1,6 +1,6 @@
 ----------------------------------------------------------------------------------
--- Original File: https://github.com/YetAnotherElectronicsChannel/FPGA-Class-D-Amplifier/blob/master/PWM_Modulator.vhd
--- Engineer: github.com/YetAnotherElectronicsChannel
+-- Based On: https://github.com/YetAnotherElectronicsChannel/FPGA-Class-D-Amplifier/blob/master/PWM_Modulator.vhd
+-- Engineer: github.com/YetAnotherElectronicsChannel, Case Zumbrum
 ----------------------------------------------------------------------------------
 
 library IEEE;
