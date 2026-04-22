@@ -24,8 +24,3 @@
 - At OS level, start memory transfers (likely through a DMA system)
 - At OS level, create syscalls for changing address that ADC is writing to (likely through a DMA system)
 - To add effects, write audio samples to effect hardware (or software) and write output of that effect to the PWM system (basically just add a middle man)
-
-## TODO
-- Setup DMA system to be continous (SG mode)
-- Look into quality degredation
-- Look into better way of accessing ADC (Avoid the hack)
