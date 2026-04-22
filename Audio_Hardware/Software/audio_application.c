@@ -3,7 +3,7 @@ audio_application.c
 
 Main code for the audio transformation application
 
-Created by: Case Zumbrum
+Created by: Case Zumbrum, Jacob Mack
 */
 
 #include <stdio.h>
