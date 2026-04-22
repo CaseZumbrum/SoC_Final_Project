@@ -1,9 +1,5 @@
 # Tasks
 
-## Circuitry - Case
- - Simple Low pass filter
- - Simple pre-amp
-
 ## Audio Hardware - Case
 - read in audio signal across ADC, store in buffer
 - PDM converter to go from buffer to output
@@ -21,11 +17,9 @@
 - auto-load files onto linux
 - do DMA from user space?
 - get control signals out
-- read audio buffer into file
 - handle several sources reading audio buffer (several audio buffers?)
 
 ## Software - Jacob
-- Control module (say what effect is happening)
-- Some CLI interface for controls
+- Control module
+- CLI interface for controls
 - Software audio effects
-- Audio saving system
